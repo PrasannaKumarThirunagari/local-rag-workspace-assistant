@@ -1,0 +1,16 @@
+# Build outputs
+/WebAppMvc/bin/
+/WebAppMvc/obj/
+/WebAppMvc/**/Debug/
+
+# Visual Studio / IDE
+/.vs/
+*.user
+*.csproj.user
+
+/# Local scratch / external repos
+/GIT REPO/
+
+# Logs / caches
+*.log
+
