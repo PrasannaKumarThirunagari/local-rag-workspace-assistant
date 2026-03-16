@@ -1,0 +1,597 @@
+@model FileExplorerViewModel
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+@functions {
+    public async Task RenderFolderNode(FolderNode node, string rootPath, string? selectedFolderPath)
+    {
+        var isRoot = string.Equals(
+            System.IO.Path.GetFullPath(node.FullPath),
+            System.IO.Path.GetFullPath(rootPath),
+            StringComparison.OrdinalIgnoreCase);
+
+        var isSelected = node.IsSelected;
+        var hasChildren = node.Children.Any();
+        var name = isRoot ? System.IO.Path.GetFileName(rootPath) : node.Name;
+
+        <li class="select-none" data-folder-path="@node.FullPath">
+            <div class="flex items-center gap-1">
+                @if (hasChildren)
+                {
+                    <button type="button"
+                            class="flex h-4 w-4 items-center justify-center rounded hover:bg-slate-200 text-slate-500"
+                            data-folder-toggle>
+                        <span class="text-[10px]">▸</span>
+                    </button>
+                }
+                else
+                {
+                    <span class="inline-flex h-4 w-4 items-center justify-center text-[10px] text-slate-300">·</span>
+                }
+
+                <a href="#"
+                   data-folder-select
+                   data-folder-path="@node.FullPath"
+                   class="flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 py-1 text-left font-mono text-[11px] @(isSelected ? "bg-brand-50 text-brand-700 ring-1 ring-brand-100" : "text-slate-700 hover:bg-slate-100")">
+                    <span class="inline-flex h-4 w-4 items-center justify-center rounded bg-brand-50 text-[10px] text-brand-600">
+                        📁
+                    </span>
+                    <span class="truncate">@name</span>
+                </a>
+            </div>
+            @if (hasChildren)
+            {
+                <ul class="ml-5 mt-0.5 space-y-0.5 border-l border-slate-200 pl-2 hidden">
+                    @foreach (var child in node.Children)
+                    {
+                        await RenderFolderNode(child, rootPath, selectedFolderPath);
+                    }
+                </ul>
+            }
+        </li>;
+    }
+}
+
+<section class="flex flex-1 flex-col gap-3">
+    <div class="flex items-center justify-between gap-3">
+        <div class="flex-1">
+            <label class="sr-only" for="searchBox">Search</label>
+            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                <span class="text-slate-400">🔎</span>
+                <input id="searchBox"
+                       type="text"
+                       class="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                       placeholder="Search file content (min 2 chars)…" />
+                <button id="searchClear"
+                        type="button"
+                        class="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-100">
+                    Clear
+                </button>
+            </div>
+            <div id="searchMeta" class="mt-1 text-[11px] text-slate-500"></div>
+        </div>
+    </div>
+
+    <!-- Search filters the panes below (no separate results UI) -->
+
+    <div id="mainExplorer" class="mt-2 flex flex-1 gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <!-- Folder tree (30%) -->
+        <aside class="flex basis-[30%] flex-col rounded-xl border border-slate-200 bg-slate-50 text-xs">
+            <div class="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+                <span class="font-medium text-slate-800">Folders</span>
+                <span class="rounded-full bg-white px-2 py-0.5 text-[10px] text-slate-400 truncate max-w-[200px]" title="@Model.RootPath">
+                    @Model.RootPath
+                </span>
+            </div>
+            <div id="folderTreeScroll" class="flex-1 overflow-auto p-2">
+                <ul class="space-y-1 font-mono text-[11px]">
+                    @{
+                        await RenderFolderNode(Model.RootFolder, Model.RootPath, Model.SelectedFolderPath);
+                    }
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Files list (30%) -->
+        <section class="flex basis-[30%] flex-col rounded-xl border border-slate-200 bg-slate-50 text-xs">
+            <div class="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+                <div class="flex items-center gap-2">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                    <span class="font-medium text-slate-800">Files</span>
+                </div>
+                <div class="flex gap-1">
+                    <span class="rounded bg-white px-1.5 py-0.5 text-[9px] text-slate-400 border border-slate-200">Home</span>
+                    <span class="rounded bg-white px-1.5 py-0.5 text-[9px] text-slate-400 border border-slate-200">Views</span>
+                </div>
+            </div>
+            <div id="fileListScroll" class="flex-1 overflow-auto">
+                <ul class="divide-y divide-slate-200 text-[11px]">
+                    @if (!Model.Files.Any())
+                    {
+                        <li class="px-3 py-2 text-[11px] text-slate-500">
+                            No files in this folder.
+                        </li>
+                    }
+                    else
+                    {
+                        @foreach (var file in Model.Files)
+                        {
+                            var isSelectedFile = string.Equals(
+                                System.IO.Path.GetFullPath(file.FullPath),
+                                string.IsNullOrWhiteSpace(Model.SelectedFilePath)
+                                    ? string.Empty
+                                    : System.IO.Path.GetFullPath(Model.SelectedFilePath),
+                                StringComparison.OrdinalIgnoreCase);
+
+                            <li>
+                                <a href="#"
+                                   data-file-select
+                                   data-file-path="@file.FullPath"
+                                   class="flex w-full items-center justify-between px-3 py-1.5 text-left @(isSelectedFile ? "bg-brand-50" : "hover:bg-slate-100")">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex h-5 w-5 items-center justify-center rounded bg-slate-100 text-[11px] text-slate-500">
+                                            📄
+                                        </span>
+                                        <div class="flex flex-col">
+                                            <span class="font-mono @(isSelectedFile ? "text-brand-700" : "text-slate-800")">
+                                                @file.Name
+                                            </span>
+                                            <span class="text-[10px] text-slate-500">
+                                                @System.IO.Path.GetDirectoryName(file.FullPath)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span class="rounded-full bg-white px-2 py-0.5 text-[9px] text-slate-400 border border-slate-200">
+                                        file
+                                    </span>
+                                </a>
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        </section>
+
+        <!-- File viewer (40%) -->
+        <section class="flex basis-[40%] flex-col rounded-xl border border-slate-200 bg-slate-50 text-xs">
+            <div class="flex items-center justify-between border-b border-slate-200 px-3 py-2">
+                <div class="flex flex-col">
+                    <span id="fileTitle" class="font-mono text-[11px] text-slate-800">
+                        @(string.IsNullOrWhiteSpace(Model.SelectedFilePath)
+                            ? "No file selected"
+                            : System.IO.Path.GetFileName(Model.SelectedFilePath))
+                    </span>
+                    <span id="fileSubtitle" class="text-[10px] text-slate-500">
+                        @(string.IsNullOrWhiteSpace(Model.SelectedFilePath)
+                            ? "Choose a file from the middle pane to preview its content."
+                            : "Preview · read-only")
+                    </span>
+                </div>
+                <button type="button"
+                        class="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-[10px] font-medium text-brand-700 hover:bg-brand-100">
+                    <span>✨</span>
+                    <span>Summarize with AI</span>
+                </button>
+            </div>
+            <div class="relative flex-1 overflow-auto bg-gradient-to-b from-white to-slate-50">
+                <div class="sticky top-0 flex gap-1 border-b border-slate-200 bg-white/95 px-3 py-1.5 text-[10px] text-slate-500">
+                    <span class="rounded bg-slate-100 px-1.5 py-0.5 border border-slate-200">Ln 1, Col 1</span>
+                    <span class="rounded bg-slate-100 px-1.5 py-0.5 border border-slate-200">Spaces: 4</span>
+                    <span class="rounded bg-slate-100 px-1.5 py-0.5 border border-slate-200">UTF-8</span>
+                </div>
+                <pre id="fileContent"
+                     class="px-3 py-2 text-[11px] leading-relaxed text-slate-800 whitespace-pre-wrap">
+@(
+    string.IsNullOrWhiteSpace(Model.FileContent)
+        ? "File content will appear here once you select a file from the list."
+        : Model.FileContent
+)
+                </pre>
+            </div>
+        </section>
+    </div>
+</section>
+@section Scripts {
+    <script>
+        (function () {
+            function setupPersistentScroll(containerId, storageKey) {
+                var el = document.getElementById(containerId);
+                if (!el || !window.sessionStorage) return;
+
+                var saved = sessionStorage.getItem(storageKey);
+                if (saved !== null) {
+                    var y = parseInt(saved, 10);
+                    if (!isNaN(y)) {
+                        el.scrollTop = y;
+                    }
+                }
+
+                el.addEventListener("scroll", function () {
+                    sessionStorage.setItem(storageKey, String(el.scrollTop));
+                });
+            }
+
+            document.addEventListener("DOMContentLoaded", function () {
+                setupPersistentScroll("folderTreeScroll", "explorer.folderTree.scrollTop");
+                setupPersistentScroll("fileListScroll", "explorer.fileList.scrollTop");
+
+                document.addEventListener("click", function (e) {
+                    var toggle = e.target.closest("[data-folder-toggle]");
+                    if (!toggle) return;
+
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    var li = toggle.closest("li");
+                    if (!li) return;
+
+                    var childList = li.querySelector("ul");
+                    if (!childList) return;
+
+                    var path = li.getAttribute("data-folder-path");
+                    var expandedRaw = sessionStorage.getItem("explorer.folders.expanded");
+                    var expanded = [];
+                    if (expandedRaw) {
+                        try { expanded = JSON.parse(expandedRaw) || []; } catch { expanded = []; }
+                    }
+
+                    var idx = expanded.indexOf(path);
+                    var willExpand;
+                    if (childList.classList.contains("hidden")) {
+                        childList.classList.remove("hidden");
+                        willExpand = true;
+                        if (idx === -1 && path) {
+                            expanded.push(path);
+                        }
+                    } else {
+                        childList.classList.add("hidden");
+                        willExpand = false;
+                        if (idx !== -1) {
+                            expanded.splice(idx, 1);
+                        }
+                    }
+
+                    sessionStorage.setItem("explorer.folders.expanded", JSON.stringify(expanded));
+                });
+
+                // Restore expanded folders from session storage
+                var expandedRaw = sessionStorage.getItem("explorer.folders.expanded");
+                if (expandedRaw) {
+                    try {
+                        var expanded = JSON.parse(expandedRaw) || [];
+                        expanded.forEach(function (path) {
+                            var li = document.querySelector('li[data-folder-path="' + path.replace(/"/g, '\\"') + '"]');
+                            if (!li) return;
+                            var childList = li.querySelector("ul");
+                            if (!childList) return;
+                            childList.classList.remove("hidden");
+                        });
+                    } catch { }
+                }
+
+                // Handle folder selection without full page reload
+                document.addEventListener("click", function (e) {
+                    var folderLink = e.target.closest("[data-folder-select]");
+                    if (folderLink) {
+                        e.preventDefault();
+                        var folderPath = folderLink.getAttribute("data-folder-path");
+                        if (!folderPath) return;
+
+                        // If this click is on the main tree, expand/collapse as well.
+                        var treeLi = folderLink.closest('li[data-folder-path]');
+                        if (treeLi) {
+                            var childList = treeLi.querySelector("ul");
+                            if (childList) {
+                                var expandedRaw = sessionStorage.getItem("explorer.folders.expanded");
+                                var expanded = [];
+                                if (expandedRaw) {
+                                    try { expanded = JSON.parse(expandedRaw) || []; } catch { expanded = []; }
+                                }
+
+                                var idx = expanded.indexOf(folderPath);
+                                if (childList.classList.contains("hidden")) {
+                                    childList.classList.remove("hidden");
+                                    if (idx === -1) expanded.push(folderPath);
+                                } else {
+                                    childList.classList.add("hidden");
+                                    if (idx !== -1) expanded.splice(idx, 1);
+                                }
+
+                                sessionStorage.setItem("explorer.folders.expanded", JSON.stringify(expanded));
+                            }
+                        }
+
+                        fetch("/Home/FolderData?folderPath=" + encodeURIComponent(folderPath))
+                            .then(function (r) { return r.ok ? r.json() : null; })
+                            .then(function (data) {
+                                if (!data) return;
+                                var listContainer = document.querySelector("#fileListScroll ul");
+                                if (!listContainer) return;
+
+                                if (!data.files || data.files.length === 0) {
+                                    listContainer.innerHTML = '<li class="px-3 py-2 text-[11px] text-slate-500">No files in this folder.</li>';
+                                } else {
+                                    var html = "";
+                                    data.files.forEach(function (f) {
+                                        html +=
+                                            '<li>' +
+                                            '<a href="#" data-file-select data-file-path="' + (f.fullPath || "") + '" class="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-slate-100">' +
+                                                '<div class="flex items-center gap-2">' +
+                                                    '<span class="inline-flex h-5 w-5 items-center justify-center rounded bg-slate-100 text-[11px] text-slate-500">📄</span>' +
+                                                    '<div class="flex flex-col">' +
+                                                        '<span class="font-mono text-slate-800">' + (f.name || "") + '</span>' +
+                                                        '<span class="text-[10px] text-slate-500">' + (f.directory || "") + '</span>' +
+                                                    '</div>' +
+                                                '</div>' +
+                                                '<span class="rounded-full bg-white px-2 py-0.5 text-[9px] text-slate-400 border border-slate-200">file</span>' +
+                                            '</a>' +
+                                            '</li>';
+                                    });
+                                    listContainer.innerHTML = html;
+                                }
+
+                                // Clear file viewer when folder changes
+                                var titleEl = document.getElementById("fileTitle");
+                                var subtitleEl = document.getElementById("fileSubtitle");
+                                var contentEl = document.getElementById("fileContent");
+                                if (titleEl) titleEl.textContent = "No file selected";
+                                if (subtitleEl) subtitleEl.textContent = "Choose a file from the middle pane to preview its content.";
+                                if (contentEl) contentEl.textContent = "File content will appear here once you select a file from the list.";
+                                if (window.sessionStorage) {
+                                    sessionStorage.removeItem("explorer.viewer.raw");
+                                    sessionStorage.removeItem("explorer.viewer.fileName");
+                                }
+                            })
+                            .catch(function () { });
+
+                        // Update visual selection in the tree
+                        document.querySelectorAll("[data-folder-select]").forEach(function (el) {
+                            el.classList.remove("bg-brand-50", "text-brand-700", "ring-1", "ring-brand-100");
+                        });
+                        folderLink.classList.add("bg-brand-50", "text-brand-700", "ring-1", "ring-brand-100");
+                    }
+                });
+
+                // Handle file selection without full page reload
+                document.addEventListener("click", function (e) {
+                    var fileLink = e.target.closest("[data-file-select]");
+                    if (!fileLink) return;
+                    e.preventDefault();
+
+                    var filePath = fileLink.getAttribute("data-file-path");
+                    if (!filePath) return;
+
+                    fetch("/Home/FileContent?filePath=" + encodeURIComponent(filePath))
+                        .then(function (r) { return r.ok ? r.json() : null; })
+                        .then(function (data) {
+                            if (!data) return;
+
+                            var titleEl = document.getElementById("fileTitle");
+                            var subtitleEl = document.getElementById("fileSubtitle");
+                            var contentEl = document.getElementById("fileContent");
+
+                            if (titleEl) titleEl.textContent = data.fileName || "Selected file";
+                            if (subtitleEl) subtitleEl.textContent = "Preview · read-only";
+                            var raw = data.content || "";
+                            if (window.sessionStorage) {
+                                sessionStorage.setItem("explorer.viewer.raw", raw);
+                                sessionStorage.setItem("explorer.viewer.fileName", data.fileName || "");
+                            }
+                            if (contentEl) contentEl.textContent = raw;
+
+                            // Highlight selected file
+                            document.querySelectorAll("[data-file-select]").forEach(function (el) {
+                                el.classList.remove("bg-brand-50");
+                            });
+                            fileLink.classList.add("bg-brand-50");
+                        })
+                        .catch(function () { });
+                });
+
+                var searchBox = document.getElementById("searchBox");
+                var searchClear = document.getElementById("searchClear");
+                var searchMeta = document.getElementById("searchMeta");
+                var folderListContainer = document.querySelector("#folderTreeScroll ul");
+                var fileListContainer = document.querySelector("#fileListScroll ul");
+                var mainExplorer = document.getElementById("mainExplorer");
+                var initialFolderHtml = folderListContainer ? folderListContainer.innerHTML : "";
+                var initialFileHtml = fileListContainer ? fileListContainer.innerHTML : "";
+                var isSearchMode = false;
+
+                var searchTimer = null;
+
+                function setSearchMode(enabled) {
+                    isSearchMode = !!enabled;
+                }
+
+                function escapeHtml(s) {
+                    return (s || "")
+                        .replaceAll("&", "&amp;")
+                        .replaceAll("<", "&lt;")
+                        .replaceAll(">", "&gt;")
+                        .replaceAll('"', "&quot;")
+                        .replaceAll("'", "&#39;");
+                }
+
+                function containsIgnoreCase(haystack, needle) {
+                    if (!haystack || !needle) return false;
+                    return haystack.toString().toLowerCase().indexOf(needle.toString().toLowerCase()) >= 0;
+                }
+
+                function applyViewerFilter(query) {
+                    var contentEl = document.getElementById("fileContent");
+                    var titleEl = document.getElementById("fileTitle");
+                    var subtitleEl = document.getElementById("fileSubtitle");
+                    if (!contentEl) return;
+
+                    var raw = window.sessionStorage ? (sessionStorage.getItem("explorer.viewer.raw") || "") : contentEl.textContent || "";
+                    var fileName = window.sessionStorage ? (sessionStorage.getItem("explorer.viewer.fileName") || "") : (titleEl ? titleEl.textContent : "");
+
+                    if (!query) {
+                        contentEl.textContent = raw;
+                        if (subtitleEl && fileName) subtitleEl.textContent = "Preview · read-only";
+                        return;
+                    }
+
+                    if (!raw) {
+                        contentEl.textContent = "";
+                        return;
+                    }
+
+                    var lines = raw.split(/\r?\n/);
+                    var filtered = lines.filter(function (l) { return containsIgnoreCase(l, query); });
+
+                    if (filtered.length === 0) {
+                        contentEl.textContent = "No matching content in the selected file.";
+                        if (subtitleEl) subtitleEl.textContent = "Filtered view";
+                    } else {
+                        contentEl.textContent = filtered.join("\n");
+                        if (subtitleEl) subtitleEl.textContent = "Filtered view (" + filtered.length + " lines)";
+                    }
+                }
+
+                function applyListFilter(query) {
+                    if (!folderListContainer || !fileListContainer) return;
+
+                    // Filter folders by displayed name + full path tooltip
+                    folderListContainer.querySelectorAll("a[data-folder-select]").forEach(function (a) {
+                        var txt = a.textContent || "";
+                        var path = a.getAttribute("data-folder-path") || "";
+                        var show = query.length === 0 || containsIgnoreCase(txt, query) || containsIgnoreCase(path, query);
+                        var li = a.closest("li");
+                        if (li) li.style.display = show ? "" : "none";
+                    });
+
+                    // Filter files by name/path/snippet (if present)
+                    fileListContainer.querySelectorAll("a[data-file-select]").forEach(function (a) {
+                        var txt = a.textContent || "";
+                        var path = a.getAttribute("data-file-path") || "";
+                        var show = query.length === 0 || containsIgnoreCase(txt, query) || containsIgnoreCase(path, query);
+                        var li = a.closest("li");
+                        if (li) li.style.display = show ? "" : "none";
+                    });
+                }
+
+                function renderSearch(data) {
+                    if (!data) return;
+                    setSearchMode(true);
+                    var matches = data.matches || [];
+                    var folders = data.folders || [];
+
+                    if (searchMeta) {
+                        searchMeta.textContent = "Found " + folders.length + " folders and " + matches.length + " files";
+                    }
+
+                    if (folderListContainer) {
+                        if (folders.length === 0) {
+                            folderListContainer.innerHTML =
+                                '<li class="px-2 py-2 text-[11px] text-slate-500">No matching folders.</li>';
+                        } else {
+                            var fh = "";
+                            folders.forEach(function (p) {
+                                var name = (p || "").split("\\").filter(Boolean).slice(-1)[0] || p;
+                                fh +=
+                                    '<li class="select-none">' +
+                                        '<a href="#" data-folder-select data-folder-path="' + escapeHtml(p) + '" class="flex items-center gap-2 rounded px-2 py-1 font-mono text-[11px] text-slate-700 hover:bg-slate-100" title="' + escapeHtml(p) + '">' +
+                                            '<span class="inline-flex h-4 w-4 items-center justify-center rounded bg-brand-50 text-[10px] text-brand-600">📁</span>' +
+                                            '<span class="truncate">' + escapeHtml(name) + '</span>' +
+                                        '</a>' +
+                                    '</li>';
+                            });
+                            folderListContainer.innerHTML = fh;
+                        }
+                    }
+
+                    if (fileListContainer) {
+                        if (matches.length === 0) {
+                            fileListContainer.innerHTML =
+                                '<li class="px-3 py-2 text-[11px] text-slate-500">No matching files.</li>';
+                        } else {
+                            var sh = "";
+                            matches.forEach(function (m) {
+                                sh +=
+                                    '<li>' +
+                                        '<a href="#" data-file-select data-file-path="' + escapeHtml(m.filePath || "") + '" class="flex w-full items-start justify-between gap-3 px-3 py-2 text-left hover:bg-slate-100">' +
+                                            '<div class="flex min-w-0 items-start gap-2">' +
+                                                '<span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded bg-slate-100 text-[11px] text-slate-500">📄</span>' +
+                                                '<div class="min-w-0">' +
+                                                    '<div class="truncate font-mono text-slate-800">' + escapeHtml(m.fileName || "") + '</div>' +
+                                                    '<div class="truncate text-[10px] text-slate-500 font-mono" title="' + escapeHtml(m.folderPath || "") + '">' + escapeHtml(m.folderPath || "") + '</div>' +
+                                                    '<div class="mt-0.5 text-[11px] text-slate-700 font-mono line-clamp-2">' + escapeHtml(m.lineText || "") + '</div>' +
+                                                '</div>' +
+                                            '</div>' +
+                                            '<div class="shrink-0 text-[10px] text-slate-500">Ln ' + (m.lineNumber || "") + '</div>' +
+                                        '</a>' +
+                                    '</li>';
+                            });
+                            fileListContainer.innerHTML = sh;
+                        }
+                    }
+
+                    // After replacing lists, apply name filtering immediately
+                    if (searchBox) {
+                        var q = (searchBox.value || "").trim();
+                        applyListFilter(q);
+                        applyViewerFilter(q);
+                    }
+                }
+
+                function doSearch() {
+                    if (!searchBox) return;
+                    var q = (searchBox.value || "").trim();
+
+                    if (searchMeta) {
+                        searchMeta.textContent = q.length === 0 ? "" : "Searching for: “" + q + "”";
+                    }
+
+                    if (q.length === 0) {
+                        setSearchMode(false);
+                        if (folderListContainer) folderListContainer.innerHTML = initialFolderHtml;
+                        if (fileListContainer) fileListContainer.innerHTML = initialFileHtml;
+                        if (searchMeta) searchMeta.textContent = "";
+                        applyViewerFilter("");
+                        return;
+                    }
+
+                    if (q.length < 2) {
+                        setSearchMode(true);
+                        // No server search yet; just filter current panes by folder/file names and viewer content
+                        applyListFilter(q);
+                        applyViewerFilter(q);
+                        return;
+                    }
+
+                    fetch("/Home/Search?q=" + encodeURIComponent(q))
+                        .then(function (r) { return r.ok ? r.json() : null; })
+                        .then(function (data) {
+                            if (data) {
+                                sessionStorage.setItem("explorer.search.lastPayload", JSON.stringify(data));
+                            }
+                            renderSearch(data);
+                        })
+                        .catch(function () { });
+                }
+
+                if (searchBox) {
+                    searchBox.addEventListener("input", function () {
+                        if (searchTimer) window.clearTimeout(searchTimer);
+                        searchTimer = window.setTimeout(doSearch, 250);
+                    });
+                }
+
+                if (searchClear) {
+                    searchClear.addEventListener("click", function () {
+                        if (!searchBox) return;
+                        searchBox.value = "";
+                        setSearchMode(false);
+                        if (folderListContainer) folderListContainer.innerHTML = initialFolderHtml;
+                        if (fileListContainer) fileListContainer.innerHTML = initialFileHtml;
+                        if (searchMeta) searchMeta.textContent = "";
+                        applyViewerFilter("");
+                    });
+                }
+            });
+        })();
+    </script>
+}
