@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using WebAppMvc.Models;
+using AI_File_Explorer_MVC.Models;
 
-namespace WebAppMvc.Services;
+namespace AI_File_Explorer_MVC.Services;
 
 public class FileSystemService : IFileSystemService
 {

@@ -94,7 +94,7 @@ This document describes a concrete, end‑to‑end implementation plan for a **f
 
 ## 3. Repository & Folder Structure
 
-Example structure within a new `ai-rag-engine` folder (can live beside `WebAppMvc`):
+Example structure within a new `ai-rag-engine` folder (can live beside `AI_File_Explorer_MVC`):
 
 ```text
 ai-rag-engine/
@@ -353,7 +353,7 @@ If you want your existing **file explorer UI** to use this RAG stack:
 With this plan in place, the next concrete move is to:
 
 1. Create the `ai-rag-engine` Python project with the outlined structure.
-2. Implement ingestion and indexing for a small subset of your Genzeon project.
+2. Implement ingestion and indexing for a small subset of your workspace.
 3. Implement `rag.ask` and verify grounded answers on a few real questions.
 4. Once stable, integrate with your ASP.NET MVC explorer and Cursor via MCP.
 

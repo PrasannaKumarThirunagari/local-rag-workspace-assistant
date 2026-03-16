@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using WebAppMvc.Models;
+using AI_File_Explorer_MVC.Models;
 
-namespace WebAppMvc.Services;
+namespace AI_File_Explorer_MVC.Services;
 
 public interface IFileSystemService
 {

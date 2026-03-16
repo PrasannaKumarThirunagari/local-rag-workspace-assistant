@@ -2,7 +2,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddSingleton<WebAppMvc.Services.IFileSystemService, WebAppMvc.Services.FileSystemService>();
+builder.Services.AddSingleton<AI_File_Explorer_MVC.Services.IFileSystemService, AI_File_Explorer_MVC.Services.FileSystemService>();
 
 var app = builder.Build();
 

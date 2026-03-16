@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace WebAppMvc.Models;
+namespace AI_File_Explorer_MVC.Models;
 
 public class FolderNode
 {

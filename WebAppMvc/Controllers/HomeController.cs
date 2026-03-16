@@ -3,10 +3,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using WebAppMvc.Models;
-using WebAppMvc.Services;
+using AI_File_Explorer_MVC.Models;
+using AI_File_Explorer_MVC.Services;
 
-namespace WebAppMvc.Controllers;
+namespace AI_File_Explorer_MVC.Controllers;
 
 public class HomeController : Controller
 {
@@ -22,7 +22,7 @@ public class HomeController : Controller
         _logger = logger;
         _fileSystemService = fileSystemService;
 
-        // Use the solution directory (parent of the WebAppMvc project) as the root.
+        // Use the solution directory (parent of the AI_File_Explorer_MVC project) as the root.
         var contentRoot = environment.ContentRootPath;
         _rootPath = Directory.GetParent(contentRoot)?.FullName ?? contentRoot;
     }
