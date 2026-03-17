@@ -1,0 +1,42 @@
+Metadata-Version: 2.4
+Name: ai_rag
+Version: 0.1.0
+Summary: Local RAG engine with ChromaDB and Ollama
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: chromadb~=0.5.3
+Requires-Dist: fastapi~=0.115.0
+Requires-Dist: uvicorn[standard]~=0.30.0
+Requires-Dist: httpx~=0.27.0
+Requires-Dist: pyyaml~=6.0.2
+Requires-Dist: sentence-transformers~=3.0.0
+
+# local-rag-workspace-assistant – RAG Engine
+
+This directory contains the **Python backend** for your local RAG engine:
+
+- Ingests files from your workspace.
+- Indexes them into **ChromaDB** with embeddings.
+- Exposes retrieval / QA APIs (and later MCP tools) for your UI and IDE.
+
+## Layout
+
+- `src/ai_rag/`
+  - `config.py` – load YAML config (workspaces, paths, DB settings).
+  - `models.py` – dataclasses for documents, chunks, queries, answers.
+  - `ingestion/` – file scanning, parsing, chunking, indexing to ChromaDB.
+  - `rag/` – embeddings, retriever, prompts, QA logic.
+  - `mcp_server/` – MCP tool definitions (`rag.ingest`, `rag.search`, `rag.ask`).
+- `scripts/`
+  - (to be added) CLI helpers like `ingest_workspace.py` and `ask_cli.py`.
+
+## Setup
+
+```bash
+cd ai/rag-engine
+python -m venv .venv
+.venv\Scripts\activate  # on Windows
+pip install -r requirements.txt
+```
+
+Once dependencies are installed, we can start adding ingestion and RAG logic step by step.

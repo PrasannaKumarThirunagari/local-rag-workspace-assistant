@@ -3,6 +3,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<AI_File_Explorer_MVC.Services.IFileSystemService, AI_File_Explorer_MVC.Services.FileSystemService>();
+builder.Services.AddHttpClient<AI_File_Explorer_MVC.Services.IRagService, AI_File_Explorer_MVC.Services.RagService>();
 
 var app = builder.Build();
 

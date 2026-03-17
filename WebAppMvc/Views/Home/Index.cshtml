@@ -169,10 +169,19 @@
                     </span>
                 </div>
                 <button type="button"
-                        class="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-[10px] font-medium text-brand-700 hover:bg-brand-100">
+                        id="summarizeBtn"
+                        class="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-[10px] font-medium text-brand-700 hover:bg-brand-100 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span>✨</span>
                     <span>Summarize with AI</span>
                 </button>
+            </div>
+            <div id="aiSummaryPanel" class="hidden border-b border-slate-200 bg-amber-50/80 px-3 py-2 text-[11px] text-slate-800">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <span class="font-medium text-amber-800">AI Summary</span>
+                    <button type="button" id="aiSummaryClose" class="rounded px-1.5 py-0.5 text-slate-500 hover:bg-amber-100">✕</button>
+                </div>
+                <div id="aiSummaryContent" class="whitespace-pre-wrap"></div>
+                <div id="aiSummaryError" class="hidden text-red-600 mt-1"></div>
             </div>
             <div class="relative flex-1 overflow-auto bg-gradient-to-b from-white to-slate-50">
                 <div class="sticky top-0 flex gap-1 border-b border-slate-200 bg-white/95 px-3 py-1.5 text-[10px] text-slate-500">
@@ -341,6 +350,7 @@
                                 if (window.sessionStorage) {
                                     sessionStorage.removeItem("explorer.viewer.raw");
                                     sessionStorage.removeItem("explorer.viewer.fileName");
+                                    sessionStorage.removeItem("explorer.viewer.filePath");
                                 }
                             })
                             .catch(function () { });
@@ -377,6 +387,7 @@
                             if (window.sessionStorage) {
                                 sessionStorage.setItem("explorer.viewer.raw", raw);
                                 sessionStorage.setItem("explorer.viewer.fileName", data.fileName || "");
+                                sessionStorage.setItem("explorer.viewer.filePath", data.filePath || "");
                             }
                             if (contentEl) contentEl.textContent = raw;
 
@@ -577,6 +588,60 @@
                     searchBox.addEventListener("input", function () {
                         if (searchTimer) window.clearTimeout(searchTimer);
                         searchTimer = window.setTimeout(doSearch, 250);
+                    });
+                }
+
+                var summarizeBtn = document.getElementById("summarizeBtn");
+                var aiSummaryPanel = document.getElementById("aiSummaryPanel");
+                var aiSummaryContent = document.getElementById("aiSummaryContent");
+                var aiSummaryError = document.getElementById("aiSummaryError");
+                var aiSummaryClose = document.getElementById("aiSummaryClose");
+
+                if (summarizeBtn && aiSummaryPanel) {
+                    summarizeBtn.addEventListener("click", function () {
+                        if (summarizeBtn.disabled) return;
+                        var filePath = window.sessionStorage ? sessionStorage.getItem("explorer.viewer.filePath") : null;
+                        var fileName = filePath ? filePath.split(/[/\\]/).pop() : "current file";
+                        var question = "Summarize " + (fileName || "this file") + " concisely. What does it do?";
+                        if (aiSummaryContent) aiSummaryContent.textContent = "Asking AI...";
+                        if (aiSummaryError) { aiSummaryError.classList.add("hidden"); aiSummaryError.textContent = ""; }
+                        aiSummaryPanel.classList.remove("hidden");
+                        summarizeBtn.disabled = true;
+
+                        var formData = new FormData();
+                        formData.append("question", question);
+                        if (filePath) formData.append("filePath", filePath);
+
+                        fetch("/Home/AskRag", {
+                            method: "POST",
+                            body: formData
+                        })
+                            .then(function (r) { return r.json(); })
+                            .then(function (data) {
+                                if (data && data.success && data.answer) {
+                                    if (aiSummaryContent) aiSummaryContent.textContent = data.answer;
+                                } else {
+                                    if (aiSummaryError) {
+                                        aiSummaryError.textContent = data && data.answer ? data.answer : "RAG service unavailable.";
+                                        aiSummaryError.classList.remove("hidden");
+                                    }
+                                    if (aiSummaryContent) aiSummaryContent.textContent = "";
+                                }
+                            })
+                            .catch(function () {
+                                if (aiSummaryError) {
+                                    aiSummaryError.textContent = "Request failed. Is the RAG API running?";
+                                    aiSummaryError.classList.remove("hidden");
+                                }
+                                if (aiSummaryContent) aiSummaryContent.textContent = "";
+                            })
+                            .finally(function () { summarizeBtn.disabled = false; });
+                    });
+                }
+
+                if (aiSummaryClose && aiSummaryPanel) {
+                    aiSummaryClose.addEventListener("click", function () {
+                        aiSummaryPanel.classList.add("hidden");
                     });
                 }
 

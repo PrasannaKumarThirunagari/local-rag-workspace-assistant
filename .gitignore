@@ -1,16 +1,32 @@
-# Build outputs
+# Build outputs (solution-wide)
 /WebAppMvc/bin/
 /WebAppMvc/obj/
 /WebAppMvc/**/Debug/
+**/bin/
+**/obj/
 
 # Visual Studio / IDE
 /.vs/
 *.user
 *.csproj.user
 
-/# Local scratch / external repos
+# Local scratch / external repos (kept outside this repo)
 /GIT REPO/
 
 # Logs / caches
 *.log
+
+# Python virtual environments
+/ai/rag-engine/.venv/
+venv/
+.env
+
+# Python caches
+**/__pycache__/
+**/*.py[cod]
+.mypy_cache/
+.pytest_cache/
+
+# ChromaDB data (local vector index)
+/ai/chroma/
 

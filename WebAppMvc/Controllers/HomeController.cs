@@ -12,15 +12,18 @@ public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
     private readonly IFileSystemService _fileSystemService;
+    private readonly IRagService _ragService;
     private readonly string _rootPath;
 
     public HomeController(
         ILogger<HomeController> logger,
         IFileSystemService fileSystemService,
+        IRagService ragService,
         IWebHostEnvironment environment)
     {
         _logger = logger;
         _fileSystemService = fileSystemService;
+        _ragService = ragService;
 
         // Use the solution directory (parent of the AI_File_Explorer_MVC project) as the root.
         var contentRoot = environment.ContentRootPath;
@@ -117,6 +120,26 @@ public class HomeController : Controller
         };
 
         return Json(payload);
+    }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> AskRag([FromForm] string question, [FromForm] string? filePath, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(question))
+        {
+            return Json(new { success = false, answer = "Please provide a question." });
+        }
+
+        var pathFilter = string.IsNullOrWhiteSpace(filePath) ? null : filePath;
+        var answer = await _ragService.AskAsync(question.Trim(), pathFilter, topK: 8, ct);
+
+        if (answer == null)
+        {
+            return Json(new { success = false, answer = "RAG service unavailable. Start the Python API: python scripts/run_api.py" });
+        }
+
+        return Json(new { success = true, answer });
     }
 
     [HttpGet]

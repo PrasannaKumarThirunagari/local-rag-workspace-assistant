@@ -1,0 +1,28 @@
+workspaces:
+  - name: file-explorer
+    root_paths:
+      - "C:/Genzeon Project/GIT REPO"
+    include_globs:
+      - "**/*.cs"
+      - "**/*.cshtml"
+      - "**/*.md"
+      - "**/*.json"
+    exclude_globs:
+      - "**/bin/**"
+      - "**/obj/**"
+      - "**/.git/**"
+      - "**/.vs/**"
+
+chroma:
+  persist_directory: "C:/Genzeon Project/ai/chroma"
+  collection_name: "file-explorer"
+
+embeddings:
+  provider: "sentence-transformers"  # use "ollama" if Ollama + nomic-embed-text is running
+  model: "all-MiniLM-L6-v2"
+  extra: {}
+
+llm:
+  provider: "ollama"
+  model: "llama3.2:3b"
+  base_url: "http://localhost:11434"
